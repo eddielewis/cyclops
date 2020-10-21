@@ -19,33 +19,21 @@ import argparse
 import os
 from imutils.video import VideoStream
 
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
 
-
-def save_snaps(width=0, height=0, name="snapshot", folder="."):
+def snap(folder, camera_id, width, height):
     vs = VideoStream(usePiCamera=True, resolution=(
-        1920, 1080), framerate=80).start()
+        width, height), framerate=80).start()
     time.sleep(2.0)
-    if width > 0 and height > 0:
-        print("Setting the custom Width and Height")
-        cap.set(cv.CAP_PROP_FRAME_WIDTH, width)
-        cap.set(cv.CAP_PROP_FRAME_HEIGHT, height)
     try:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-            # ----------- CREATE THE FOLDER -----------------
-            folder = os.path.dirname(folder)
-            try:
-                os.stat(folder)
-            except:
-                os.mkdir(folder)
-    except:
-        pass
+        os.makedirs(folder)
+    except OSError as error:
+        if error.errno != errno.EEXIST:
+            raise
 
-    nSnap = 0
+    snap_count = 0
 
-    fileName = "%s/%s_%d_%d_" % (folder, name, CAMERA_WIDTH, CAMERA_HEIGHT)
+    file_name = "%s/%s_%d_%d_" % (folder, camera_id,
+                                  width, height)
     while(True):
         image = vs.read()
 
@@ -55,27 +43,30 @@ def save_snaps(width=0, height=0, name="snapshot", folder="."):
         if key == ord('q'):
             break
         if key == ord(' '):
-            print("Saving image ", nSnap)
-            cv.imwrite("%s%d.jpg" % (fileName, nSnap), image)
-            nSnap += 1
+            print("Saving image ", snap_count)
+            cv.imwrite("%s%d.jpg" % (file_name, snap_count), image)
+            snap_count += 1
 
     cv.destroyAllWindows()
     vs.stop()
 
 
 def main():
-    SAVE_FOLDER = "."
-
-    # ----------- PARSE THE INPUTS -----------------
     parser = argparse.ArgumentParser(
-        description="Saves snapshot from the camera. \n q to quit \n spacebar to save the snapshot")
-    parser.add_argument("--folder", default=SAVE_FOLDER,
-                        help="Path to the save folder (default: current)")
+        description="Saves image from the camera. Press q to quit and spacebar to save the snapshot")
+    parser.add_argument("output_folder",
+                        help="Path to folder to save images in.")
+    parser.add_argument("camera_id",
+                        help="An id for this camera to keep track of calibration images.")
+    parser.add_argument("--width",
+                        default=640,
+                        type=int)
+    parser.add_argument("--height",
+                        default=480,
+                        type=int)
     args = parser.parse_args()
 
-    SAVE_FOLDER = args.folder
-
-    save_snaps(folder=args.folder)
+    snap(args.output_folder, args.camera_id, args.width, args.height)
 
     print("Files saved")
 
