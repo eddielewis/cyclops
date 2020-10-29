@@ -1,17 +1,3 @@
-"""
-Saves a series of snapshots with the current camera as snapshot_<width>_<height>_<nnn>.jpg
-Arguments:
-    --f <output folder>     default: current folder
-    --n <file name>         default: snapshot
-    --w <width px>          default: none
-    --h <height px>         default: none
-Buttons:
-    q           - quit
-    space bar   - save the snapshot
-
-
-"""
-
 import cv2 as cv
 import time
 import sys
