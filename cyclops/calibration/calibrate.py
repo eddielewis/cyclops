@@ -6,7 +6,9 @@ import getopt
 from glob import glob
 import os
 import errno
+import socket
 
+HOSTNAME = socket.gethostname()
 THREADS = 4
 
 
@@ -16,7 +18,7 @@ def splitfn(fn):
     return path, name, ext
 
 
-def calibrate(images_folder, camera_id, square_size, threads):
+def calibrate(images_folder, square_size):
 
     image_mask = images_folder + "*.jpg"
     output_folder = images_folder[:-1] + "_output/"
@@ -62,12 +64,12 @@ def calibrate(images_folder, camera_id, square_size, threads):
         print('           %s... OK' % fn)
         return (corners.reshape(-1, 2), pattern_points)
 
-    if threads <= 1:
+    if THREADS <= 1:
         chessboards = [process_image(fn) for fn in image_names]
     else:
-        print("Run with %d threads..." % threads)
+        print("Run with %d threads..." % THREADS)
         from multiprocessing.dummy import Pool as ThreadPool
-        pool = ThreadPool(threads)
+        pool = ThreadPool(THREADS)
         chessboards = pool.map(process_image, image_names)
 
     chessboards = [x for x in chessboards if x is not None]
@@ -91,7 +93,7 @@ def calibrate(images_folder, camera_id, square_size, threads):
         if error.errno != errno.EEXIST:
             raise
 
-    np.savez('%s/matrix_%s' % (matrix_output_folder, camera_id), camera_matrix=camera_matrix,
+    np.savez('%s/matrix_%s' % (matrix_output_folder, HOSTNAME), camera_matrix=camera_matrix,
              dist_coefs=dist_coefs, rvecs=rvecs, tvecs=tvecs)
 
     # undistort the image with the calibration
@@ -127,18 +129,13 @@ def main():
         description="Uses images from folder specified to calculate camera calibration matrix.")
     parser.add_argument("images_folder",
                         help="Path to folder containing images.")
-    parser.add_argument("camera_id",
-                        help="An id for this camera to keep track of calibration matrix.")
     parser.add_argument("square_size",
                         help="The size of squares on the chessboard",
                         type=float)
-    parser.add_argument("--threads",
-                        default=4,
-                        type=int)
     args = parser.parse_args()
 
-    calibrate(args.images_folder, args.camera_id,
-              args.square_size, args.threads)
+    calibrate(args.images_folder,
+              args.square_size)
 
 
 if __name__ == "__main__":
