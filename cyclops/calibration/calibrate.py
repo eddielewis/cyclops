@@ -66,9 +66,9 @@ def calibrate(images_folder, square_size, threads):
     if threads <= 1:
         chessboards = [process_image(filename) for filename in image_names]
     else:
-        print("Run with %d threads..." % threads)
+        print("Run with %d threads..." % THREADS)
         from multiprocessing.dummy import Pool as ThreadPool
-        pool = ThreadPool(threads)
+        pool = ThreadPool(THREADS)
         chessboards = pool.map(process_image, image_names)
 
     chessboards = [x for x in chessboards if x is not None]
