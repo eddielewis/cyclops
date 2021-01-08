@@ -1,6 +1,7 @@
 import errno
 from picamera import PiCamera
 from picamera.array import PiRGBArray
+from picamera.exc import PiCameraValueError
 import sys
 import time
 import cv2 as cv
@@ -41,9 +42,14 @@ class Snap():
             self.rawCapture.truncate(0)
 
         cv.destroyAllWindows()
-        vs.stop()
 
     def save(self):
         print("Saving image ", self.snap_count)
         cv.imwrite("%s%d.jpg" % (self.file_name, self.snap_count), self.image)
         self.snap_count += 1
+
+    def stop(self):
+        try:
+            self.camera.close()
+        except PiCameraValueError:
+            pass
