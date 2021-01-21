@@ -8,7 +8,7 @@ import os
 import errno
 import socket
 
-PROCESSORS = 4
+THREADS = 4
 CAMERA_ID = socket.gethostname()
 
 
@@ -18,7 +18,7 @@ def split_filename(filename):
     return path, name, ext
 
 
-def calibrate(images_folder, square_size, threads):
+def calibrate(images_folder, square_size, sensor_mode, threads):
 
     image_mask = images_folder + "*.jpg"
     output_folder = images_folder[:-1] + "_output/"
@@ -92,7 +92,7 @@ def calibrate(images_folder, square_size, threads):
         if error.errno != errno.EEXIST:
             raise
 
-    np.savez('%s/matrix_%s' % (matrix_output_folder, CAMERA_ID), camera_matrix=camera_matrix,
+    np.savez('%s/matrix_%s_%s' % (matrix_output_folder, CAMERA_ID, sensor_mode), camera_matrix=camera_matrix,
              dist_coefs=dist_coefs, rvecs=rvecs, tvecs=tvecs)
 
     # undistort the image with the calibration
@@ -107,11 +107,11 @@ def calibrate(images_folder, square_size, threads):
             continue
 
         h, w = image.shape[:2]
-        newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
+        new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
             camera_matrix, dist_coefs, (w, h), 1, (w, h))
 
         dst = cv2.undistort(image, camera_matrix,
-                            dist_coefs, None, newcameramtx)
+                            dist_coefs, None, new_camera_matrix)
 
         # crop and save the image
         x, y, w, h = roi
@@ -129,13 +129,16 @@ def main():
     parser.add_argument("square_size",
                         help="The size of squares on the chessboard",
                         type=float)
-    parser.add_argument("--processors",
-                        default=4,
+    parser.add_argument("sensor_mode",
+                        help="The sensor mode used to capture calibration images. Docs can be found here: https://picamera.readthedocs.io/en/latest/fov.html#sensor-modes",
+                        type=int)
+    parser.add_argument("--threads",
+                        default=THREADS,
                         type=int)
     args = parser.parse_args()
 
     calibrate(args.images_folder,
-              args.square_size, args.processors)
+              args.square_size, args.sensor_mode, args.threads)
 
 
 if __name__ == "__main__":
