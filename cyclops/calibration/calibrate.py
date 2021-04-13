@@ -21,7 +21,7 @@ def split_filename(filename):
 def calibrate(images_folder, square_size, sensor_mode, threads):
 
     image_mask = images_folder + "*.jpg"
-    output_folder = images_folder[:-1] + "_output/"
+    output_folder = images_folder[:-6] + "output/"
     print(output_folder)
 
     image_names = glob(image_mask)
