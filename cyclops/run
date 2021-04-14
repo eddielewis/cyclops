@@ -1,0 +1,47 @@
+#!/home/pi/.virtualenvs/cv/bin/python
+import time
+from RPi import GPIO
+from time import sleep
+import multiprocessing as mp
+from camera import CameraServer
+from gpio import GPIOHandler
+from tcp_server import PiTCPServer, PiTCPHandler
+import socketserver
+import threading
+
+clk = 4
+dt = 14
+
+snap_in = 23
+snap_out = 22
+
+
+class App():
+    HOST = "0.0.0.0"
+    PORT = 5005
+
+    def __init__(self):
+
+        self.camera_server = CameraServer()
+        self.gpio = GPIOHandler(snap_in, snap_out, self.camera_server)
+
+        PiTCPServer.allow_reuse_address = True
+        self.tcp_server = PiTCPServer(
+            self.camera_server, (App.HOST, App.PORT), PiTCPHandler)
+
+    def run(self):
+        while True:
+            try:
+                tcp_server.serve_forever()
+            except KeyboardInterrupt:
+                print("Exiting")
+            finally:
+                t = threading.Thread(target=self.tcp_server.shutdown())
+                t.start()
+                self.gpio.close()
+                self.camera_server.close()
+                t.join()
+
+
+app = App()
+app.run()
