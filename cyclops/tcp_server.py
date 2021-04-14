@@ -37,7 +37,7 @@ class PiTCPHandler(socketserver.BaseRequestHandler):
         if self.data in commands:
             if self.data == b"snap":
                 self.camera_server.snap()
-                self.request.sendall(self.data.upper())
+                # self.request.sendall(self.data.upper())
         else:
             error_message = b"Command \"" + self.data + b"\" not recognised"
             self.request.sendall(error_message)

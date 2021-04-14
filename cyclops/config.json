@@ -1,0 +1,33 @@
+{
+    "camera": {
+        "sensor_mode": 7,
+        "width": 1920,
+        "height": 1080,
+        "framerate": 30,
+        "options": {
+            "hflip": false,
+            "exposure_mode": "auto",
+            "iso": 800,
+            "exposure_compensation": 15,
+            "awb_mode": "horizon",
+            "sensor_mode": 7
+        }
+    },
+    "netgear": {
+        "port": 5566,
+        "options": {
+            "multiserver_mode": true
+        }
+    },
+    "tcp": {
+        "host": "0.0.0.0",
+        "port": 5005
+    },
+    "gpio": {
+        "encoder0": 4,
+        "encoder1": 14,
+        "snap_in": 23,
+        "snap_out": 22
+    },
+    "s_hostname": "barold.local"
+}

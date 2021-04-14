@@ -1,38 +1,34 @@
 #!/home/pi/.virtualenvs/cv/bin/python
-import time
-from RPi import GPIO
-from time import sleep
-import multiprocessing as mp
 from camera import CameraServer
 from gpio import GPIOHandler
 from tcp_server import PiTCPServer, PiTCPHandler
-import socketserver
 import threading
-
-clk = 4
-dt = 14
-
-snap_in = 23
-snap_out = 22
+import json
+from types import SimpleNamespace
+import socket
 
 
 class App():
-    HOST = "0.0.0.0"
-    PORT = 5005
 
     def __init__(self):
+        with open('config.json') as f:
+            data = f.read().replace('\n', '')
+            config = json.loads(
+                data, object_hook=lambda d: SimpleNamespace(**d))
+        config.netgear.ip = socket.gethostbyname(config.s_hostname)
 
-        self.camera_server = CameraServer()
-        self.gpio = GPIOHandler(snap_in, snap_out, self.camera_server)
+        self.camera_server = CameraServer(
+            config.camera, config.netgear)
+        self.gpio = GPIOHandler(config.gpio, self.camera_server)
 
         PiTCPServer.allow_reuse_address = True
         self.tcp_server = PiTCPServer(
-            self.camera_server, (App.HOST, App.PORT), PiTCPHandler)
+            self.camera_server, (config.tcp.host, config.tcp.port), PiTCPHandler)
 
     def run(self):
         while True:
             try:
-                tcp_server.serve_forever()
+                self.tcp_server.serve_forever()
             except KeyboardInterrupt:
                 print("Exiting")
             finally:

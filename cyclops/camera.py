@@ -4,32 +4,36 @@ import json
 import cv2
 from load_camera_matrix import camera_matrix, dist_coefs
 import socket
-import zmq
+import numpy as np
 
 
 class CameraServer:
-    def __init__(self):
+    def __init__(self, camera, netgear):
         self.camera_id = socket.gethostname()
-        options = {"multiserver_mode": True}
-        machine_ip = socket.gethostbyname("barold.local")
+        self.load_camera_matrix(camera.sensor_mode)
 
+        options = netgear.options
         self.netgear_server = NetGear(
-            address=machine_ip, port="5567", protocol="tcp", pattern=2, **options
+            address=netgear.ip, port=netgear.port, protocol="tcp", pattern=2, **netgear.options.__dict__
         )
 
-        options = {
-            "hflip": False,
-            "exposure_mode": "auto",
-            "iso": 800,
-            "exposure_compensation": 15,
-            "awb_mode": "horizon",
-            "sensor_mode": 0,
-        }
-        self.stream = PiGear(resolution=(1920, 1080), framerate=30,
-                             logging=True, **options)
+        self.stream = PiGear(
+            logging=True, **camera.options.__dict__)
+        """ self.stream = PiGear(
+            resolution=(camera.width, camera.height),
+            framerate=camera.framerate,
+            logging=True, **camera.options) """
         self.stream.start()
 
         self.frame_count = 0
+
+    def load_camera_matrix(self, sensor_mode):
+        path = "/home/pi/ce301_lewis_edward_f/cyclops/calibration/data/calibration_images_%s_%s/matrix_%s_%s.npz" % (
+            self.camera_id, sensor_mode, self.camera_id, sensor_mode)
+
+        with np.load(path) as f:
+            self.camera_matrix, self.dist_coefs, self.rvecs, self.tvecs = [f[i] for i in (
+                'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs')]
 
     def close(self):
         self.stream.stop()
@@ -37,7 +41,7 @@ class CameraServer:
 
     def snap(self):
         frame = self.stream.read()
-        # frame = cv2.undistort(frame, camera_matrix, dist_coefs)
+        frame = cv2.undistort(frame, camera_matrix, dist_coefs)
         frame_data = {
             "camera_id": self.camera_id,
             "frame_count": self.frame_count
