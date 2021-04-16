@@ -3,7 +3,7 @@ import time
 import sys
 import argparse
 import os
-from imutils.video import VideoStream
+from vidgear.gears import PiGear
 import socket
 import errno
 
@@ -11,8 +11,16 @@ HOSTNAME = socket.gethostname()
 
 
 def snap(folder, width, height, snap_count):
-    vs = VideoStream(usePiCamera=True, resolution=(
-        width, height), framerate=32).start()
+    options = {
+        "hflip": True,
+        "exposure_mode": "auto",
+        "iso": 800,
+        "exposure_compensation": 15,
+        "awb_mode": "horizon",
+        "sensor_mode": 4
+    }
+    stream = PiGear(resolution=(1600, 1200), framerate=30,
+                    logging=True, **options).start()
     time.sleep(2.0)
     try:
         os.makedirs(folder)
@@ -23,7 +31,7 @@ def snap(folder, width, height, snap_count):
     file_name = "%s/%s_%d_%d_" % (folder, HOSTNAME,
                                   width, height)
     while(True):
-        image = vs.read()
+        image = stream.read()
 
         cv.imshow('camera', image)
 
@@ -36,7 +44,7 @@ def snap(folder, width, height, snap_count):
             snap_count += 1
 
     cv.destroyAllWindows()
-    vs.stop()
+    stream.stop()
 
 
 def main():
