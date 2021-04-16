@@ -2,15 +2,14 @@ from vidgear.gears import PiGear
 from vidgear.gears import NetGear
 import json
 import cv2
-from load_camera_matrix import camera_matrix, dist_coefs
 import socket
 import numpy as np
 
 
 class CameraServer:
     def __init__(self, camera, netgear):
-        self.camera_id = socket.gethostname()
-        self.load_camera_matrix(camera.sensor_mode)
+        self.camera_id = socket.gethostname() + ".local"
+        # self.load_camera_matrix(camera.sensor_mode)
 
         options = netgear.options
         self.netgear_server = NetGear(
@@ -34,6 +33,7 @@ class CameraServer:
         with np.load(path) as f:
             self.camera_matrix, self.dist_coefs, self.rvecs, self.tvecs = [f[i] for i in (
                 'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs')]
+            print(self.camera_matrix)
 
     def close(self):
         self.stream.stop()
@@ -41,11 +41,12 @@ class CameraServer:
 
     def snap(self):
         frame = self.stream.read()
-        frame = cv2.undistort(frame, camera_matrix, dist_coefs)
+        # frame = cv2.undistort(frame, camera_matrix, dist_coefs)
         frame_data = {
             "camera_id": self.camera_id,
             "frame_count": self.frame_count
         }
+        print(frame_data)
         frame_data_json = json.dumps(frame_data)
         self.netgear_server.send(frame, message=frame_data_json)
         self.frame_count += 1

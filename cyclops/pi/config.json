@@ -1,6 +1,6 @@
 {
     "camera": {
-        "sensor_mode": 7,
+        "sensor_mode": 4,
         "width": 1920,
         "height": 1080,
         "framerate": 30,
@@ -25,7 +25,7 @@
     },
     "gpio": {
         "encoder0": 4,
-        "encoder1": 14,
+        "encoder1": 17,
         "snap_in": 23,
         "snap_out": 22
     },
