@@ -1,11 +1,11 @@
 {
     "camera": {
-        "sensor_mode": 4,
-        "width": 1920,
-        "height": 1080,
+        "width": 1600,
+        "height": 1200,
         "framerate": 30,
         "options": {
             "hflip": false,
+            "vflip": false,
             "exposure_mode": "auto",
             "iso": 800,
             "exposure_compensation": 15,

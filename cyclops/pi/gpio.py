@@ -1,5 +1,3 @@
-# !/usr/bin/env python
-
 import pigpio
 
 
@@ -45,8 +43,8 @@ class GPIOHandler:
 
         """
         self.camera_server = camera_server
-
         self.pi = pigpio.pi()
+        # Setup the pins numbers passed to the constructor
         self.encoder0 = gpio.encoder0
         self.encoder1 = gpio.encoder1
         self.snap_in = gpio.snap_in
@@ -57,15 +55,17 @@ class GPIOHandler:
 
         self.lastGpio = None
 
+        # Set pin type: input or output
         self.pi.set_mode(self.encoder0, pigpio.INPUT)
         self.pi.set_mode(self.encoder1, pigpio.INPUT)
         self.pi.set_mode(self.snap_in, pigpio.INPUT)
         self.pi.set_mode(self.snap_out, pigpio.OUTPUT)
-
+        # Sets whether to pull the input up or down with a 10K resistor
         self.pi.set_pull_up_down(self.encoder0, pigpio.PUD_UP)
         self.pi.set_pull_up_down(self.encoder1, pigpio.PUD_UP)
         self.pi.set_pull_up_down(self.snap_in, pigpio.PUD_DOWN)
 
+        # Instantiates the callbacks which trigger on GPIO pin voltage rising or falling
         self.encoder0_cb = self.pi.callback(
             self.encoder0, pigpio.EITHER_EDGE, self._pulse)
         self.encoder1_cb = self.pi.callback(
@@ -75,14 +75,17 @@ class GPIOHandler:
 
         self.pos = 0
 
+    # Sends a signal to Pis to take an image
     def snap_trigger(self):
         self.pi.gpio_trigger(self.snap_out, 10, 1)
         self.camera_server.snap()
 
+    # Receives the signal from to take an image
     def snap_read(self, gpio, level, tick):
         if level == 1:
             self.camera_server.snap()
 
+    # Handles the rotation of the encoder
     def _pulse(self, gpio, level, tick):
         """
         Decode the rotary encoder pulse.
@@ -133,15 +136,12 @@ class GPIOHandler:
                     else:
                         self.pos += 1
 
-            print(self.pos)
+            # Takes an image on even count of the encoder
             if self.pos % 2 == 0:
                 self.snap_trigger()
 
+    # Removes the event listeners on the GPIO pins
     def close(self):
-        """
-        Cancel the rotary encoder decoder.
-        """
-
         self.encoder0_cb.cancel()
         self.encoder1_cb.cancel()
         self.snap_cb.cancel()
