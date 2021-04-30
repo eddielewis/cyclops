@@ -14,7 +14,7 @@ from vidgear.gears import NetGear
 import socket
 import numpy as np
 
-CAMERA_LAYOUT = ["cyclops1.local", "cyclops0.local"]
+CAMERA_LAYOUT = ["cyclops0.local", "cyclops1.local"]
 
 
 def calc_h_matrices(frame_dict):
@@ -87,7 +87,7 @@ cv2.imshow("stitched", stitched_img)
 cv2.waitKey(0)
 ids, corners = find_markers(stitched_img)
 origin = np.array([0, 0, 0])
-m_per_px = calc_m_per_px(corners, 0.0195)
+m_per_px = calc_m_per_px(corners, 0.025)
 
 
 np.savez(args.output_fn+".npz", h_matrices=h_matrices,

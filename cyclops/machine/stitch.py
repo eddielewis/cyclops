@@ -101,8 +101,8 @@ def stitch_pair_h(images, H):
 
 def stitch_pair_v(images, H):
     img_a, img_b = images
-    w = max(img_a.shape[1], img_b.shape[1])
-    h = img_a.shape[0] + img_b.shape[0]
+    w = max(img_a.shape[0], img_b.shape[0])
+    h = img_a.shape[1] + img_b.shape[1]
     return stitch_pair(images, H, w, h)
 
 
