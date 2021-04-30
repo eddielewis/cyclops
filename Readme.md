@@ -11,4 +11,6 @@ When launched, it will start waiting for frames to be sent to it from the Pis. T
 The Pi program is contained in `cyclops/pi/` and can be run with `./main.py`
 It has the config filename as a required argument, and the `--preview` flag can be used to enable preview mode.
 
+The config file is called `config.json` and can be edited by the user to change any parameters of the program without editing the code.
+
 In normal mode, the program will listen for TCP messages or a GPIO to take an image. However, in preview mode, the TCP server is disabled and frames are streamed constantly to the client instead.
