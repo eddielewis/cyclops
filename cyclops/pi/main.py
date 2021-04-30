@@ -12,7 +12,7 @@ import argparse
 class App():
     def __init__(self, fn):
         # Loads config.json to pass parameters to objects
-        with open('config.json') as f:
+        with open(fn) as f:
             data = f.read().replace('\n', '')
             config = json.loads(
                 data, object_hook=lambda d: SimpleNamespace(**d))
