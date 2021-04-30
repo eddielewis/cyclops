@@ -7,6 +7,8 @@ The client program is contained in `cyclops/machine/` and can be run with `pytho
 It does not take any arguments.
 When launched, it will start waiting for frames to be sent to it from the Pis. These frames will be displayed in a montage. The user can press "q" at any time to exit this stage of the program and proceed to stitch the images. Once stitching is finished, the program will write it to disk and display it in a window.
 
+The setup program for calibration is called `setup_params.py`. It takes a filename to output the results to. It functions very similarly to `main.py` but saves the pamrameters instead of loading them.
+
 ## Pi Program
 The Pi program is contained in `cyclops/pi/` and can be run with `./main.py`
 It has the config filename as a required argument, and the `--preview` flag can be used to enable preview mode.
