@@ -14,3 +14,9 @@ It has the config filename as a required argument, and the `--preview` flag can 
 The config file is called `config.json` and can be edited by the user to change any parameters of the program without editing the code.
 
 In normal mode, the program will listen for TCP messages or a GPIO to take an image. However, in preview mode, the TCP server is disabled and frames are streamed constantly to the client instead.
+
+## Camera Calibration Scripts
+Scripts for calibrating the camera are located in `cyclops/calibration/`
+
+## Images
+The `cyclops/images/` contains all the images used for testing the different algorithms
