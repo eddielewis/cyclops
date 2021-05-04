@@ -7,11 +7,9 @@ import numpy as np
 
 class Position:
     def __init__(self, fn):
-        """ with np.load(fn, allow_pickle=True) as f:
+        with np.load(fn, allow_pickle=True) as f:
             self.origin = f["origin"]
-            self.m_per_px = f["m_per_px"] """
-        self.origin = np.array([0, 0])
-        self.m_per_px = 1.78
+            self.m_per_px = f["m_per_px"]
 
     def px_to_world(self, pt):
         return (pt - self.origin) * self.m_per_px
