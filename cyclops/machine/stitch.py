@@ -3,6 +3,7 @@ import argparse
 import cv2
 import cv2.aruco as aruco
 import numpy as np
+from .setup_params import PX_DIST
 
 
 # Constant that determines the width and height of the stitched image

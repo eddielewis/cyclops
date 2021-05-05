@@ -13,6 +13,54 @@ import numpy as np
 CAMERA_LAYOUT = ["cyclops0.local", "cyclops1.local"]
 
 
+def calc_t_matrices(frame_dict):
+    t_matrices = {}
+
+    for i in range(len(CAMERA_LAYOUT)-1):
+        cam_id = CAMERA_LAYOUT[i]
+
+        img = frame_dict[cam_id]
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
+        arucoParameters = aruco.DetectorParameters_create()
+        arucoParameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_CONTOUR
+        corners, ids, rejectedImgPoints = aruco.detectMarkers(
+            gray, aruco_dict, parameters=arucoParameters)
+
+        ids = [int(x) for x in ids]
+        m_centres = np.empty((4, 2), dtype=np.float32)
+        for m_id, c in zip(ids, corners):
+            centre_x = (c[0][0][0] + c[0][1][0] +
+                        c[0][2][0] + c[0][3][0]) / 4
+            centre_y = (c[0][0][1] + c[0][1][1] +
+                        c[0][2][1] + c[0][3][1]) / 4
+            i = m_id % 4
+            m_centres[i] = np.array([centre_x, centre_y])
+
+        if m_centres[0][0] > m_centres[2][0]:
+            tmp = m_centres[0].copy()
+            m_centres[0] = m_centres[2]
+            m_centres[2] = tmp
+            tmp = m_centres[1].copy()
+            m_centres[1] = m_centres[3]
+            m_centres[3] = tmp
+
+        x_origin = m_centres[0][0]
+        y_origin = m_centres[0][1]
+
+        print(x_origin, y_origin)
+        marker_points = np.array([
+            [0, 0],
+            [0, 0 + PX_DIST],
+            [0 + PX_DIST, 0],
+            [0 + PX_DIST, 0 + PX_DIST]
+        ], dtype=np.float32)
+        T = cv2.getPerspectiveTransform(m_centres, marker_points)
+
+        t_matrices[cam_id] = T
+    return t_matrices
+
+
 def get_frames():
     options = {"multiserver_mode": True}
     # Resolves this computer's IP
@@ -79,6 +127,10 @@ def main():
     cv2.imshow("Stitched Image", stitched_img)
     cv2.waitKey(0)
 
+
+stitcher = Stitcher()
+stitcher.set_params(t_matrices, CAMERA_LAYOUT)
+stitched_img = stitcher.stitch_h(frame_dict)
 
 if __name__ == "__main__":
     main()
