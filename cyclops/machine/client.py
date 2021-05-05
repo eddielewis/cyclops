@@ -2,6 +2,10 @@ import socket
 
 
 class Sender:
+    """
+    Sends command to all Pis to take a picutre
+    """
+
     def __init__(self, pi_hostnames, port):
         self.pi_ips = []
         for hostname in pi_hostnames:

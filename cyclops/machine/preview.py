@@ -1,3 +1,7 @@
+"""
+Adapted from https://abhitronix.github.io/vidgear/v0.2.1-stable/gears/netgear/usage/#clients-end
+"""
+
 # import required libraries
 from vidgear.gears import NetGear
 from imutils import build_montages
@@ -60,7 +64,6 @@ while True:
         # {do something with the extracted frame here}
     except KeyboardInterrupt:
         break
-print("feohfseiuo")
 
 # close output window
 cv2.destroyAllWindows()

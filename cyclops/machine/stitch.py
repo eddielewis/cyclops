@@ -1,165 +1,133 @@
+import imutils
 import argparse
 import cv2
+import cv2.aruco as aruco
 import numpy as np
+
+
+# Constant that determines the width and height of the stitched image
+PX_DIST = 480
 
 
 class Stitcher:
     def set_params_from_file(self, fn):
         with np.load(fn, allow_pickle=True) as f:
-            self.h_matrices = f["h_matrices"].tolist()
+            self.t_matrices = f["t_matrices"].tolist()
             self.camera_layout = f["camera_layout"].tolist()
 
-    def set_params(self, h_matrices, camera_layout):
-        self.h_matrices = h_matrices
+    def set_params(self, t_matrices, camera_layout):
+        self.h_matrices = t_matrices
         self.camera_layout = camera_layout
 
-    def stitch_h(self, frame_dict, estimate_H):
-        if self.h_matrices is None or self.camera_layout is None:
+    def stitch_h(self, frame_dict):
+        """
+        Stitches the images horizontally, using the pre-calculated transformation matrices
+        frame_dict is a dict of camera id and frame.
+        """
+        # Pre-calculated matrices are required
+        if self.t_matrices is None or self.camera_layout is None:
             return None
-        stitched_img = frame_dict[self.camera_layout[0]]
-        for i in range(len(self.camera_layout)-1):
-            cam_a_id = self.camera_layout[i]
-            cam_b_id = self.camera_layout[i+1]
 
-            img_b = stitched_img
-            img_a = frame_dict[cam_b_id]
+        # Once transformed, images are put in a list to be concatenated
+        imgs = []
+        for cam_id, img in frame_dict.items():
+            # Gets the pre-calculated matrix from the object attribute
+            T = self.t_matrices[cam_id]
+            img = cv2.warpPerspective(
+                img, T, (img.shape[1], img.shape[0]))
+            # Crops the region outside the marker centres
+            corrected_img = img[:PX_DIST, :PX_DIST]
+            img.append(corrected_img)
 
-            if estimate_H:
-                H = estimate_homography([img_a, img_b])
-            else:
-                m_id = matrix_id(cam_a_id, cam_b_id)
-                H = self.h_matrices[m_id]
-            stitched_img = stitch_pair_h([img_a, img_b], H)
+        # Stacks all the images horizontally into one array
+        stitched_img = np.hstack(imgs)
         return stitched_img
 
     def stitch_v(self, imgs):
-        if self.h_matrices is None or self.camera_layout is None:
+        """
+        Stitches the images vertically
+        All processing is done when stitching the images horizontally,
+        so they must simply be stacked on top of each other
+        """
+        if self.t_matrices is None or self.camera_layout is None:
             return None
-        stitched_img = imgs[0]
-        for i in range(1, len(self.camera_layout)-1):
-            img_b = stitched_img
-            img_a = imgs[i]
-            H = estimate_homography([img_a, img_b])
-            stitched_img = stitch_pair_v([img_a, img_b], H)
-        return stitched_img
+        return np.vstack(imgs)
 
 
-def matrix_id(cam_a_id, cam_b_id):
-    return cam_a_id + "_" + cam_b_id
+def calc_marker_centre(corners):
+    """
+    Returns the centre of the marker from an avg of the marker points
+    """
+    c = corners
+    x = (c[0][0][0] + c[0][1][0] +
+         c[0][2][0] + c[0][3][0]) / 4
+    y = (c[0][0][1] + c[0][1][1] +
+         c[0][2][1] + c[0][3][1]) / 4
+    return [x, y]
 
 
-def estimate_homography(images, ratio=0.75, reproj_thresh=4.0):
-    # unpack the images, then detect keypoints and extract
-    # local invariant descriptors from them
-    image_a, image_b = images
-    kpts_a, features_a = detect_and_describe(image_a)
-    kpts_b, features_b = detect_and_describe(image_b)
-    # match features between the two images
-    match = match_keypoints(kpts_a, kpts_b,
-                            features_a, features_b, ratio, reproj_thresh)
-    # if the match is None, then there aren't enough matched
-    # keypoints to create a panorama
-    if match is None:
-        return None
-
-    # otherwise, apply a perspective warp to stitch the images
-    # together
-    (matches, H, status) = match
-    return H
+def find_markers(img):
+    """
+    Finds any markers in the image and returns their corners and ids.
+    """
+    # Function requires grayscale image as specified in paper
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Define the marker dictionary used
+    aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
+    arucoParameters = aruco.DetectorParameters_create()
+    # Yields a greater corner accuracy in testing than the default method
+    arucoParameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_CONTOUR
+    corners, ids, rejectedImgPoints = aruco.detectMarkers(
+        gray, aruco_dict, parameters=arucoParameters)
+    return ids, corners
 
 
-def remove_border(stitched_img):
-    gray = cv2.cvtColor(stitched_img, cv2.COLOR_BGR2GRAY)
-    contours, hierarchy = cv2.findContours(
-        gray, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-    max_a, max_a_index = 0, 0
-    for i in range(0, len(contours)):
-        a = cv2.contourArea(contours[i], False)
-        if a > max_a:
-            max_a = a
-            max_a_index = i
-    bounding_rect = cv2.boundingRect(contours[max_a_index])
-    x, y, width, height = bounding_rect
-    stitched_img = stitched_img[y:height, x:width]
-    return stitched_img
-
-
-def stitch_pair(images, H, w, h):
-    img_a, img_b = images
-    stitched_img = cv2.warpPerspective(img_a, H, (w, h))
-    stitched_img[0:img_b.shape[0], 0:img_b.shape[1]] = img_b
-    stitched_img = remove_border(stitched_img)
-    return stitched_img
-
-
-def stitch_pair_h(images, H):
-    img_a, img_b = images
-    w = img_a.shape[1] + img_b.shape[1]
-    h = max(img_a.shape[0], img_b.shape[0])
-    return stitch_pair(images, H, w, h)
-
-
-def stitch_pair_v(images, H):
-    img_a, img_b = images
-    w = max(img_a.shape[0], img_b.shape[0])
-    h = img_a.shape[1] + img_b.shape[1]
-    return stitch_pair(images, H, w, h)
-
-
-def detect_and_describe(image):
-    # convert the image to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # detect and extract features from the image
-    descriptor = cv2.SIFT_create()
-    (kps, features) = descriptor.detectAndCompute(image, None)
-    # convert the keypoints from KeyPoint objects to NumPy
-    # arrays
-    kps = np.float32([kp.pt for kp in kps])
-    # return a tuple of keypoints and features
-    return (kps, features)
-
-
-def match_keypoints(kps_a, kps_b, features_a, features_b,
-                    ratio, reproj_thresh):
-    # compute the raw matches and initialize the list of actual
-    # matches
-    matcher = cv2.DescriptorMatcher_create("BruteForce")
-    raw_matches = matcher.knnMatch(features_a, features_b, 2)
-    matches = []
-    # loop over the raw matches
-    for m in raw_matches:
-        # ensure the distance is within a certain ratio of each
-        # other (i.e. Lowe's ratio test)
-        if len(m) == 2 and m[0].distance < m[1].distance * ratio:
-            matches.append((m[0].trainIdx, m[0].queryIdx))
-
-    # computing a homography requires at least 4 matches
-    if len(matches) > 4:
-        # construct the two sets of points
-        ptsA = np.float32([kps_a[i] for (_, i) in matches])
-        ptsB = np.float32([kps_b[i] for (i, _) in matches])
-        # compute the homography between the two sets of points
-        (h_matrix, status) = cv2.findHomography(ptsA, ptsB, cv2.RANSAC,
-                                                reproj_thresh)
-        # return the matches along with the homograpy matrix
-        # and status of each matched point
-        return (matches, h_matrix, status)
-    # otherwise, no homograpy could be computed
-    return None
-
-
-def calc_h_matrices(frame_dict):
-    h_matrices = {}
+def calc_t_matrices(frame_dict):
+    """
+    Generates the perspective transformation matrices to be used for stitching
+    """
+    t_matrices = {}
 
     for i in range(len(CAMERA_LAYOUT)-1):
-        cam_a_id = CAMERA_LAYOUT[i]
-        cam_b_id = CAMERA_LAYOUT[i+1]
+        cam_id = CAMERA_LAYOUT[i]
 
-        imgs = [frame_dict[cam_a_id], frame_dict[cam_b_id]]
-        H = estimate_homography(imgs)
-        m_id = matrix_id(cam_a_id, cam_b_id)
-        h_matrices[m_id] = H
-    return h_matrices
+        img = frame_dict[cam_id]
+        # Gets marker corners and ids from a function in the aruco module
+        corners, ids = find_markers(img)
+
+        # ids is a list of single element list
+        # this converts each list to an int
+        ids = [int(x) for x in ids]
+        m_centres = np.empty((4, 2), dtype=np.float32)
+        for m_id, c in zip(ids, corners):
+            centre = calc_marker_centre(c)
+            i = m_id % 4
+            m_centres[i] = np.array(centre)
+        # Puts the marker centres at the correct indexes
+        # top-left: 0
+        # bottom-left: 1
+        # top-right: 2
+        # bottom-right: 3
+        if m_centres[0][0] > m_centres[2][0]:
+            tmp = m_centres[0].copy()
+            m_centres[0] = m_centres[2]
+            m_centres[2] = tmp
+            tmp = m_centres[1].copy()
+            m_centres[1] = m_centres[3]
+            m_centres[3] = tmp
+
+        # Creates img points to transform the marker centre points to
+        # The order is top-left, bottom-left, top-right, bottom-right
+        marker_points = np.array([
+            [0, 0],
+            [0, 0 + PX_DIST],
+            [0 + PX_DIST, 0],
+            [0 + PX_DIST, 0 + PX_DIST]
+        ], dtype=np.float32)
+        T = cv2.getPerspectiveTransform(m_centres, marker_points)
+
+        t_matrices[cam_id] = T
+    return t_matrices
 
 
 CAMERA_LAYOUT = ["cyclops1.local", "cyclops0.local"]
@@ -175,17 +143,19 @@ def main():
 
     left_img = cv2.imread(args.left_img)
     right_img = cv2.imread(args.right_img)
+    left_img = imutils.resize(left_img, width=400)
+    right_img = imutils.resize(right_img, width=400)
 
     frame_dict = {
         "cyclops0.local": left_img,
         "cyclops1.local": right_img
     }
 
-    h_matrices = calc_h_matrices(frame_dict)
+    h_matrices = calc_t_matrices(frame_dict)
     stitcher = Stitcher()
     stitcher.set_params(h_matrices, CAMERA_LAYOUT)
 
-    h_img = stitcher.stitch_h(frame_dict)
+    h_img = stitcher.stitch_h(frame_dict, False)
     cv2.imshow("h img", h_img)
 
     v_img = stitcher.stitch_v([right_img, left_img])

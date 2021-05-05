@@ -1,3 +1,7 @@
+"""
+Adapated from OpenCV calibration sample script
+"""
+
 import numpy as np
 import cv2
 import argparse
