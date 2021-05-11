@@ -10,12 +10,9 @@ import cv2
 class App():
     def __init__(self):
         # Loads parameters used for image stitching
-        with np.load("/home/ed/University/ce301_lewis_edward_f/cyclops/params.npz", allow_pickle=True) as f:
-            t_matrices = f["h_matrices"].tolist()
+        with np.load("/home/ed/University/ce301_lewis_edward_f/cyclops/machine/test.npz", allow_pickle=True) as f:
+            t_matrices = f["t_matrices"].tolist()
             camera_layout = f["camera_layout"].tolist()
-            self.origin = f["origin"]
-            self.m_per_px = float(f["m_per_px"])
-
         # Sets up stitcher with parameters
         self.stitcher = Stitcher()
         self.stitcher.set_params(t_matrices, camera_layout)
@@ -76,8 +73,10 @@ def main():
     frame_dicts = app.run()
 
     imgs = []
+    frame_dicts = frame_dicts[:-1]
     # Creates a horizontally stitched image for each set
     for frame_d in frame_dicts:
+        print(frame_d.keys())
         stitched_img = app.stitcher.stitch_h(
             frame_d)
         cv2.imshow("stitched", stitched_img)

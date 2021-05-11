@@ -3,7 +3,6 @@ import argparse
 import cv2
 import cv2.aruco as aruco
 import numpy as np
-from .setup_params import PX_DIST
 
 
 # Constant that determines the width and height of the stitched image
@@ -17,7 +16,7 @@ class Stitcher:
             self.camera_layout = f["camera_layout"].tolist()
 
     def set_params(self, t_matrices, camera_layout):
-        self.h_matrices = t_matrices
+        self.t_matrices = t_matrices
         self.camera_layout = camera_layout
 
     def stitch_h(self, frame_dict):
@@ -30,7 +29,7 @@ class Stitcher:
             return None
 
         # Once transformed, images are put in a list to be concatenated
-        imgs = []
+        imgs = [None]*len(frame_dict)
         for cam_id, img in frame_dict.items():
             # Gets the pre-calculated matrix from the object attribute
             T = self.t_matrices[cam_id]
@@ -38,7 +37,8 @@ class Stitcher:
                 img, T, (img.shape[1], img.shape[0]))
             # Crops the region outside the marker centres
             corrected_img = img[:PX_DIST, :PX_DIST]
-            img.append(corrected_img)
+            i = self.camera_layout.index(cam_id)
+            imgs[i] = corrected_img
 
         # Stacks all the images horizontally into one array
         stitched_img = np.hstack(imgs)

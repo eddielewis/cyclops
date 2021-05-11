@@ -1,5 +1,6 @@
 from imutils import build_montages
 import cv2
+import cv2.aruco as aruco
 import argparse
 import numpy as np
 from stitch import calc_t_matrices, Stitcher
@@ -9,14 +10,17 @@ from vidgear.gears import NetGear
 import socket
 import numpy as np
 
+from stitch import PX_DIST
+
 # Constant that specifies the order of the cameras
-CAMERA_LAYOUT = ["cyclops0.local", "cyclops1.local"]
+CAMERA_LAYOUT = ["cyclops1.local", "cyclops0.local"]
 
 
 def calc_t_matrices(frame_dict):
     t_matrices = {}
 
-    for i in range(len(CAMERA_LAYOUT)-1):
+    for i in range(len(CAMERA_LAYOUT)):
+        print("i", i)
         cam_id = CAMERA_LAYOUT[i]
 
         img = frame_dict[cam_id]
@@ -113,7 +117,12 @@ def main():
     args = parser.parse_args()
 
     frame_dict = get_frames()
+
+    print(frame_dict.keys())
+
     t_matrices = calc_t_matrices(frame_dict)
+
+    print(t_matrices.keys())
 
     stitcher = Stitcher()
     stitcher.set_params(t_matrices, CAMERA_LAYOUT)
@@ -127,10 +136,6 @@ def main():
     cv2.imshow("Stitched Image", stitched_img)
     cv2.waitKey(0)
 
-
-stitcher = Stitcher()
-stitcher.set_params(t_matrices, CAMERA_LAYOUT)
-stitched_img = stitcher.stitch_h(frame_dict)
 
 if __name__ == "__main__":
     main()
