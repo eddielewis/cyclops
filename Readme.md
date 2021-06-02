@@ -2,6 +2,13 @@
 ## About
 This project aims to compete with cutting-edge machine vision calibration systems, delivering equivalent performance while utilising low-cost consumer hardware. Blackman & White is a company that produces state-of-the-art CNC cutting machines. A vital component of these machines is their outstanding cutting accuracy, which requires a robust calibration system to precisely align the cutting head with the material. The current system in use at Blackman & White is an expensive array of cameras that takes hours of manual work to calibrate. This project plans to solve these two problems using the most advanced techniques in computer vision. 
 
+This project encompasses many fields of computer science like computer vision, networking, threading
+and multiprocessing. Cameras mounted to the cutting machine gantry take images of the cutting bed.
+These images are processed to remove distortion, transform the perspective and stitched together to form
+a final image. The program detects ArUco markers printed on the material and estimates their position.
+From this data, the position, rotation, and stretch of the material can be estimated to dynamically update
+the cutting paths of the machine and increase the cut's accuracy.
+
 ## Client Program
 Contained in `cyclops/machine/`.
 Can be run with `python main.py`.
